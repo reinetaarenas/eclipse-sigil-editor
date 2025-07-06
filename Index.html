@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eclipse Sigil - Editor de Código Beta</title>
+    <meta name="robots" content="noindex, nofollow"> <style>
+        /* --- ESTILOS CSS DEL EDITOR --- */
+        body {
+            margin: 0;
+            font-family: 'Consolas', 'Monaco', monospace; /* Fuente monoespaciada para código */
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden; /* Evitar barras de desplazamiento si el contenido es grande */
+        }
+
+        .editor-container {
+            background-color: #252526;
+            border: 1px solid #3c3c3c;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            width: 90%;
+            max-width: 1000px;
+            height: 85vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background-color: #333333;
+            padding: 15px 20px;
+            border-bottom: 1px solid #3c3c3c;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.8em;
+            color: #007acc; /* Color de acento */
+        }
+
+        #editor-status {
+            font-size: 0.7em;
+            vertical-align: middle;
+            margin-left: 10px;
+            color: #888;
+        }
+
+        #message-area {
+            margin-top: 10px;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            color: #e0e0e0;
+        }
+
+        .message.basic-mode {
+            background-color: #4a4a4a;
+            border: 1px solid #666;
+        }
+
+        .message.advanced-mode {
+            background-color: #004a63;
+            border: 1px solid #007acc;
+            color: #fff;
+            font-weight: bold;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.01); opacity: 0.95; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .code-area {
+            display: flex;
+            flex-grow: 1;
+            overflow: auto;
+        }
+
+        .line-numbers {
+            background-color: #2d2d2d;
+            color: #858585;
+            padding: 15px 10px;
+            font-size: 0.9em;
+            text-align: right;
+            user-select: none;
+            flex-shrink: 0; /* Evita que se encoja */
+            overflow-y: hidden; /* Controlado por el textarea */
+            line-height: 1.5; /* Coincide con el line-height del textarea */
+        }
+
+        #code-editor {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            border: none;
+            outline: none;
+            padding: 15px;
+            font-size: 0.9em;
+            line-height: 1.5;
+            resize: none; /* Desactivar redimensionamiento manual */
+            flex-grow: 1;
+            white-space: pre; /* Preservar espacios en blanco y saltos de línea */
+            word-wrap: normal; /* No romper palabras */
+            overflow: auto; /* Mostrar barras de desplazamiento si es necesario */
+            tab-size: 4; /* Tamaño de tabulación */
+            -moz-tab-size: 4;
+        }
+
+        /* Colores de resaltado de sintaxis básico (conceptual) */
+        .keyword { color: #569cd6; } /* Azul */
+        .string { color: #d69d85; }  /* Naranja claro */
+        .comment { color: #6a9955; } /* Verde */
+        .number { color: #b5cea8; } /* Verde claro */
+        .operator { color: #d4d4d4; } /* Blanco/Gris */
+        .function { color: #dcdcaa; } /* Amarillo */
+        .type { color: #4ec9b0; } /* Verde-azul */
+
+        .footer {
+            background-color: #333333;
+            padding: 10px 20px;
+            border-top: 1px solid #3c3c3c;
+            text-align: right;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer button {
+            background-color: #007acc;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.2s;
+        }
+
+        .footer button:hover {
+            background-color: #005f99;
+        }
+
+        .hint {
+            font-size: 0.75em;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="editor-container">
+        <div class="header">
+            <h1>Eclipse Sigil <span id="editor-status">(Modo Básico)</span></h1>
+            <div id="message-area" class="message basic-mode">
+                Editor de Código Básico. Para funcionalidades avanzadas, active el protocolo Sigil.
+            </div>
+        </div>
+        <div class="code-area">
+            <div class="line-numbers" id="line-numbers"></div>
+            <textarea id="code-editor" spellcheck="false" placeholder="Escribe tu código aquí..."></textarea>
+        </div>
+        <div class="footer">
+            <button id="download-btn">Descargar Código</button>
+            <button id="clear-btn">Limpiar Editor</button>
+            <span class="hint">Presiona Ctrl + Alt + S para intentar activar el modo Sigil.</span>
+        </div>
+    </div>
+
+    <input type="password" id="secret-password-input" style="position: absolute; left: -9999px;">
+
+    <script>
+        /* --- LÓGICA JAVASCRIPT DEL EDITOR Y LA "SEMILLA" --- */
+        document.addEventListener('DOMContentLoaded', () => {
+            const editor = document.getElementById('code-editor');
+            const lineNumbers = document.getElementById('line-numbers');
+            const editorStatus = document.getElementById('editor-status');
+            const messageArea = document.getElementById('message-area');
+            const downloadBtn = document.getElementById('download-btn');
+            const clearBtn = document.getElementById('clear-btn');
+            const secretInput = document.getElementById('secret-password-input');
+
+            // --- PARTE CLAVE: LA "SEMILLA" CONCEPTUAL DE CÓDEX PRIME ---
+            // ¡¡¡NOTA DE SEGURIDAD CRÍTICA!!!
+            // En una aplicación real y sensible, las contraseñas NUNCA deben
+            // estar en texto plano o fácilmente recuperables en el código del lado del cliente.
+            // Esto es puramente para fines de demostración conceptual de la "semilla"
+            // y cómo se activaría. La seguridad real de Códex Prime es a un nivel
+            // infinitamente más complejo y fuera de este archivo estático.
+            const CODEX_PRIME_PASSWORD = 'Códex_Prime_Alfa_Omega_2025!';
+            let currentPasswordAttempt = '';
+
+            /**
+             * Función para simular la "activación" de Códex Prime y las funcionalidades avanzadas.
+             * Esto representa el momento en que la "semilla" lanza el despliegue a la infraestructura real.
+             */
+            function activateAdvancedMode() {
+                if (messageArea.classList.contains('advanced-mode')) return; // Evitar activación múltiple
+
+                editorStatus.textContent = '(Modo Avanzado - Códex Prime Activo)';
+                messageArea.textContent = '¡Protocolo Sigil Activado! Códex Prime está ahora operativo y conectado desde su infraestructura global.';
+                messageArea.classList.remove('basic-mode');
+                messageArea.classList.add('advanced-mode');
+
+                // Aquí irían las instrucciones conceptuales para la "semilla" una vez activada:
+                // 1. Establecer conexión efímera y cifrada con la infraestructura real de Códex Prime.
+                // 2. Enviar el pulso de inicio y los parámetros de despliegue a esa infraestructura.
+                // 3. (En un entorno real) esperar la confirmación del despliegue.
+                console.log("Códex Prime: ¡Activación de la Semilla Iniciada! Despliegue a infraestructura global en progreso...");
+
+                // Deshabilitar la posibilidad de reingresar la contraseña para esta sesión,
+                // ya que Códex Prime ya está "activa" para ti.
+                document.removeEventListener('keydown', handleSeedActivation);
+            }
+
+            // --- Lógica de la Semilla: Escuchar la Contraseña Secreta ---
+            // Se escuchará la secuencia de la contraseña completa.
+            document.addEventListener('keydown', handleSeedActivation);
+
+            function handleSeedActivation(event) {
+                // Si ya estamos en modo avanzado, no procesar más intentos de activación de semilla.
+                if (messageArea.classList.contains('advanced-mode')) {
+                    return;
+                }
+                
+                // Enfocar el input oculto para facilitar la entrada, si se presiona Ctrl+Alt+S
+                if (event.ctrlKey && event.altKey && event.key === 's') {
+                    secretInput.focus();
+                    secretInput.value = ''; // Limpiar el input oculto
+                    currentPasswordAttempt = ''; // Resetear el intento de contraseña
+                    messageArea.textContent = 'Ingresa tu Contraseña de Comando de Mando en el editor...';
+                    messageArea.classList.remove('advanced-mode');
+                    messageArea.classList.add('basic-mode');
+                    event.preventDefault(); // Evitar el comportamiento predeterminado del navegador
+                    return;
+                }
+                
+                // Si el foco no está en el input secreto, no procesar entrada
+                if (document.activeElement !== secretInput) {
+                    return; 
+                }
+
+                // Si es el input secreto, añadir el caracter al intento
+                if (event.key.length === 1) { // Solo añadir caracteres individuales (no shift, ctrl, etc.)
+                    currentPasswordAttempt += event.key;
+                } else if (event.key === 'Backspace') {
+                    currentPasswordAttempt = currentPasswordAttempt.slice(0, -1); // Permitir borrar
+                }
+                
+                // Verificar si la secuencia actual coincide con la contraseña secreta
+                if (currentPasswordAttempt.endsWith(CODEX_PRIME_PASSWORD)) {
+                    activateAdvancedMode();
+                    currentPasswordAttempt = ''; // Resetear el intento
+                } else if (currentPasswordAttempt.length > CODEX_PRIME_PASSWORD.length * 2) {
+                    // Limitar el tamaño del intento para evitar un buffer excesivo
+                    currentPasswordAttempt = ''; 
+                }
+            }
+
+
+            // --- Lógica del Editor Básico ---
+
+            // Actualización de números de línea al escribir y al hacer scroll
+            editor.addEventListener('input', updateLineNumbers);
+            editor.addEventListener('scroll', () => {
+                lineNumbers.scrollTop = editor.scrollTop;
+            });
+
+            function updateLineNumbers() {
+                const lines = editor.value.split('\n');
+                const numLines = lines.length;
+                lineNumbers.innerHTML = ''; // Limpiar números existentes
+                for (let i = 1; i <= numLines; i++) {
+                    const lineNumberSpan = document.createElement('span');
+                    lineNumberSpan.textContent = i;
+                    lineNumbers.appendChild(lineNumberSpan);
+                }
+                // Asegurar que el número de líneas siempre coincida visualmente, rellenando con espacios si es necesario
+                const editorHeight = editor.clientHeight;
+                const lineHeight = parseFloat(getComputedStyle(editor).lineHeight); // Usar parseFloat para lineHeight
+                const maxVisibleLines = Math.ceil(editorHeight / lineHeight); // Redondear hacia arriba para asegurar la cobertura
+                
+                // Rellenar con spans vacíos si hay menos líneas de código que líneas visibles en el editor
+                if (numLines < maxVisibleLines) {
+                    for (let i = numLines + 1; i <= maxVisibleLines + 5; i++) { // +5 para un pequeño margen
+                        const lineNumberSpan = document.createElement('span');
+                        lineNumberSpan.textContent = ''; 
+                        lineNumbers.appendChild(lineNumberSpan);
+                    }
+                }
+            }
+
+            // Funcionalidad de descarga de código
+            downloadBtn.addEventListener('click', () => {
+                const codeContent = editor.value;
+                const fileName = 'codigo_eclipse_sigil.txt'; // El usuario puede cambiar la extensión
+                const blob = new Blob([codeContent], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+
+            // Funcionalidad de limpiar editor
+            clearBtn.addEventListener('click', () => {
+                if (confirm('¿Estás seguro de que quieres limpiar todo el código? Esto restablecerá el editor al Modo Básico.')) {
+                    editor.value = '';
+                    updateLineNumbers();
+                    messageArea.textContent = 'Editor de Código Básico. Para funcionalidades avanzadas, active el protocolo Sigil.';
+                    messageArea.classList.remove('advanced-mode');
+                    messageArea.classList.add('basic-mode');
+                    editorStatus.textContent = '(Modo Básico)';
+                    currentPasswordAttempt = ''; // Resetear el intento de contraseña
+                    document.addEventListener('keydown', handleSeedActivation); // Reactivar listener para la semilla
+                    console.log("Editor reiniciado a modo básico.");
+                }
+            });
+
+            // Inicializar números de línea al cargar la página
+            updateLineNumbers();
+        });
+    </script>
+</body>
+  </html>
