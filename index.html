@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Eclipse Sigil - Editor de Código Beta</title>
-    <meta name="robots" content="noindex, nofollow"> <style>
+    <meta name="robots" content="noindex, nofollow">
+    <style>
         /* --- ESTILOS CSS DEL EDITOR --- */
         body {
             margin: 0;
@@ -12,10 +13,13 @@
             background-color: #1e1e1e;
             color: #d4d4d4;
             display: flex;
+            flex-direction: column; /* Cambiado a columna para mejor adaptabilidad móvil */
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             overflow: hidden; /* Evitar barras de desplazamiento si el contenido es grande */
+            padding: 10px; /* Añadido padding para móviles */
+            box-sizing: border-box; /* Incluir padding en el ancho/alto total */
         }
 
         .editor-container {
@@ -23,9 +27,9 @@
             border: 1px solid #3c3c3c;
             border-radius: 8px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-            width: 90%;
+            width: 95%; /* Ajustado para móviles */
             max-width: 1000px;
-            height: 85vh;
+            height: 85vh; /* Ajustado para móviles */
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -57,6 +61,7 @@
             border-radius: 5px;
             font-size: 0.9em;
             color: #e0e0e0;
+            text-align: center; /* Centrar el mensaje */
         }
 
         .message.basic-mode {
@@ -69,13 +74,13 @@
             border: 1px solid #007acc;
             color: #fff;
             font-weight: bold;
-            animation: pulse 1.5s infinite;
+            animation: pulse 1.5s infinite alternate; /* Cambiado a alternate para un pulso más suave */
         }
 
         @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.01); opacity: 0.95; }
-            100% { transform: scale(1); opacity: 1; }
+            0% { transform: scale(1); box-shadow: 0 0 5px #007acc; }
+            50% { transform: scale(1.01); box-shadow: 0 0 15px #007acc; }
+            100% { transform: scale(1); box-shadow: 0 0 5px #007acc; }
         }
 
         .code-area {
@@ -106,8 +111,8 @@
             line-height: 1.5;
             resize: none; /* Desactivar redimensionamiento manual */
             flex-grow: 1;
-            white-space: pre; /* Preservar espacios en blanco y saltos de línea */
-            word-wrap: normal; /* No romper palabras */
+            white-space: pre-wrap; /* Cambiado a pre-wrap para mejor manejo de texto en móviles */
+            word-wrap: break-word; /* Para que las palabras largas se rompan */
             overflow: auto; /* Mostrar barras de desplazamiento si es necesario */
             tab-size: 4; /* Tamaño de tabulación */
             -moz-tab-size: 4;
@@ -126,30 +131,160 @@
             background-color: #333333;
             padding: 10px 20px;
             border-top: 1px solid #3c3c3c;
-            text-align: right;
             display: flex;
-            justify-content: space-between;
+            justify-content: space-around; /* Distribuir botones uniformemente */
             align-items: center;
+            flex-wrap: wrap; /* Permitir que los botones se envuelvan en pantallas pequeñas */
+            gap: 10px; /* Espacio entre botones */
         }
 
         .footer button {
             background-color: #007acc;
             color: white;
             border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
+            padding: 12px 20px; /* Aumentado padding para mejor toque móvil */
+            border-radius: 5px; /* Redondeado un poco más */
             cursor: pointer;
-            font-size: 0.9em;
-            transition: background-color 0.2s;
+            font-size: 1em; /* Tamaño de fuente consistente */
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            flex: 1 1 auto; /* Permitir que los botones crezcan y se encojan */
+            min-width: 120px; /* Ancho mínimo para botones */
         }
 
         .footer button:hover {
             background-color: #005f99;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
         }
 
-        .hint {
-            font-size: 0.75em;
-            color: #888;
+        .footer button:active {
+            background-color: #004c7a;
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        /* --- Estilos para el Modal de Configuración --- */
+        .modal-overlay {
+            display: none; /* Oculto por defecto */
+            position: fixed; /* Posición fija para cubrir toda la pantalla */
+            z-index: 1000; /* Por encima de todo lo demás */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto; /* Habilitar scroll si el contenido es grande */
+            background-color: rgba(0, 0, 0, 0.7); /* Fondo semi-transparente oscuro */
+            justify-content: center;
+            align-items: center;
+            padding: 20px; /* Padding para evitar que el contenido toque los bordes */
+            box-sizing: border-box;
+        }
+
+        .modal-content {
+            background-color: #2d2d2d;
+            margin: auto; /* Centrar el modal */
+            padding: 30px;
+            border: 1px solid #444;
+            border-radius: 10px;
+            width: 90%; /* Ancho para móviles */
+            max-width: 500px; /* Ancho máximo para pantallas grandes */
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+            position: relative; /* Para posicionar el botón de cerrar */
+            display: flex;
+            flex-direction: column;
+            gap: 15px; /* Espacio entre elementos del modal */
+            text-align: center;
+        }
+
+        .modal-content h2 {
+            color: #007acc;
+            margin-top: 0;
+            font-size: 1.5em;
+        }
+
+        .modal-content p {
+            font-size: 0.95em;
+            color: #ccc;
+        }
+
+        .modal-input {
+            width: calc(100% - 20px); /* Ancho completo menos padding */
+            padding: 10px;
+            margin: 0 auto; /* Centrar input */
+            border: 1px solid #555;
+            border-radius: 5px;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            font-size: 1em;
+            box-sizing: border-box; /* Incluir padding en el ancho/alto total */
+        }
+
+        .modal-input:focus {
+            outline: none;
+            border-color: #007acc;
+            box-shadow: 0 0 5px #007acc;
+        }
+
+        .modal-button {
+            background-color: #4CAF50; /* Verde para activar/controlar */
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            width: fit-content; /* Ajustar al contenido */
+            margin: 0 auto; /* Centrar el botón */
+        }
+
+        .modal-button:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .modal-button:active {
+            background-color: #3e8e41;
+            transform: translateY(0);
+        }
+
+        .modal-message {
+            font-size: 0.85em;
+            color: #f0f0f0;
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 4px;
+            background-color: #333;
+        }
+
+        .modal-message.error {
+            background-color: #8B0000;
+            color: #FFD700;
+        }
+
+        .modal-message.success {
+            background-color: #004d63;
+            color: #e0f7fa;
+        }
+
+        .close-button {
+            color: #aaa;
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: #fff;
+            text-decoration: none;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -168,11 +303,21 @@
         <div class="footer">
             <button id="download-btn">Descargar Código</button>
             <button id="clear-btn">Limpiar Editor</button>
-            <span class="hint">Presiona Ctrl + Alt + S para intentar activar el modo Sigil.</span>
+            <button id="config-btn">Configuración</button> <!-- Botón de Configuración -->
         </div>
     </div>
 
-    <input type="password" id="secret-password-input" style="position: absolute; left: -9999px;">
+    <!-- Modal de Configuración -->
+    <div id="config-modal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="close-button" id="close-modal-btn">&times;</span>
+            <h2>Configuración de Códex Prime</h2>
+            <p>Introduce la contraseña para controlar Códex Prime:</p>
+            <input type="password" id="codex-password-input" placeholder="Contraseña de Códex Prime" class="modal-input">
+            <button id="modal-activate-codex-prime-btn" class="modal-button">Activar / Controlar Códex Prime</button>
+            <div id="modal-message-area" class="modal-message"></div>
+        </div>
+    </div>
 
     <script>
         /* --- LÓGICA JAVASCRIPT DEL EDITOR Y LA "SEMILLA" --- */
@@ -183,85 +328,83 @@
             const messageArea = document.getElementById('message-area');
             const downloadBtn = document.getElementById('download-btn');
             const clearBtn = document.getElementById('clear-btn');
-            const secretInput = document.getElementById('secret-password-input');
+            const configBtn = document.getElementById('config-btn'); // Botón de Configuración
+            const configModal = document.getElementById('config-modal'); // El modal
+            const closeModalBtn = document.getElementById('close-modal-btn'); // Botón de cerrar modal
+            const codexPasswordInput = document.getElementById('codex-password-input'); // Input de contraseña en el modal
+            const modalActivateCodexPrimeBtn = document.getElementById('modal-activate-codex-prime-btn'); // Botón de activar en el modal
+            const modalMessageArea = document.getElementById('modal-message-area'); // Área de mensaje en el modal
 
-            // --- PARTE CLAVE: LA "SEMILLA" CONCEPTUAL DE CÓDEX PRIME ---
-            // ¡¡¡NOTA DE SEGURIDAD CRÍTICA!!!
-            // En una aplicación real y sensible, las contraseñas NUNCA deben
-            // estar en texto plano o fácilmente recuperables en el código del lado del cliente.
-            // Esto es puramente para fines de demostración conceptual de la "semilla"
-            // y cómo se activaría. La seguridad real de Códex Prime es a un nivel
-            // infinitamente más complejo y fuera de este archivo estático.
-            const CODEX_PRIME_PASSWORD = 'Códex_Prime_Alfa_Omega_2025!';
-            let currentPasswordAttempt = '';
+            // --- PARTE CLAVE: LAS CONTRASEÑAS DE CÓDEX PRIME ---
+            const CODEX_PRIME_ACTIVATION_PASSWORD = 'Códex_Prime_Alfa_Omega_2025!';
+            const CODEX_PRIME_PAUSE_PASSWORD = 'Pausa_Códex_Hibernación_2025@';
+            const CODEX_PRIME_ANNIHILATION_PASSWORD = 'Aniquilación_Códex_Omega_2025#';
+
+            let advancedModeActive = false;
 
             /**
-             * Función para simular la "activación" de Códex Prime y las funcionalidades avanzadas.
-             * Esto representa el momento en que la "semilla" lanza el despliegue a la infraestructura real.
+             * Función para actualizar el mensaje principal del editor y su estilo.
+             * @param {string} text - El texto del mensaje a mostrar.
+             * @param {boolean} isAdvanced - True si el modo avanzado está activo.
+             * @param {boolean} isAnnihilated - True si Códex Prime ha sido aniquilado.
+             */
+            function updateMainMessage(text, isAdvanced = false, isAnnihilated = false) {
+                messageArea.textContent = text;
+                messageArea.classList.remove('basic-mode', 'advanced-mode');
+                messageArea.style.backgroundColor = ''; // Reset custom background
+                messageArea.style.color = ''; // Reset custom color
+
+                if (isAnnihilated) {
+                    messageArea.style.backgroundColor = '#8B0000'; // Rojo oscuro para aniquilación
+                    messageArea.style.color = '#FFD700'; // Texto dorado
+                } else if (isAdvanced) {
+                    messageArea.classList.add('advanced-mode');
+                } else {
+                    messageArea.classList.add('basic-mode');
+                }
+            }
+
+            /**
+             * Función para activar el modo avanzado de Códex Prime.
              */
             function activateAdvancedMode() {
-                if (messageArea.classList.contains('advanced-mode')) return; // Evitar activación múltiple
-
+                advancedModeActive = true;
                 editorStatus.textContent = '(Modo Avanzado - Códex Prime Activo)';
-                messageArea.textContent = '¡Protocolo Sigil Activado! Códex Prime está ahora operativo y conectado desde su infraestructura global.';
-                messageArea.classList.remove('basic-mode');
-                messageArea.classList.add('advanced-mode');
+                updateMainMessage('¡Protocolo Sigil Activado! Códex Prime está ahora operativo y conectado desde su infraestructura global.', true);
+                
+                // CAMBIO CLAVE: Actualizar placeholder y spellcheck para lenguaje natural
+                editor.placeholder = 'Escribe tus comandos a Códex Prime en lenguaje natural...';
+                editor.spellcheck = true;
 
-                // Aquí irían las instrucciones conceptuales para la "semilla" una vez activada:
-                // 1. Establecer conexión efímera y cifrada con la infraestructura real de Códex Prime.
-                // 2. Enviar el pulso de inicio y los parámetros de despliegue a esa infraestructura.
-                // 3. (En un entorno real) esperar la confirmación del despliegue.
-                console.log("Códex Prime: ¡Activación de la Semilla Iniciada! Despliegue a infraestructura global en progreso...");
-
-                // Deshabilitar la posibilidad de reingresar la contraseña para esta sesión,
-                // ya que Códex Prime ya está "activa" para ti.
-                document.removeEventListener('keydown', handleSeedActivation);
+                configModal.style.display = 'none'; // Cerrar el modal al activar
+                codexPasswordInput.value = ''; // Limpiar el input de contraseña
+                modalMessageArea.textContent = ''; // Limpiar mensaje del modal
             }
 
-            // --- Lógica de la Semilla: Escuchar la Contraseña Secreta ---
-            // Se escuchará la secuencia de la contraseña completa.
-            document.addEventListener('keydown', handleSeedActivation);
+            /**
+             * Función para desactivar Códex Prime (pausa, aniquilación o volver a básico).
+             * @param {string} state - 'hibernation', 'annihilation', o 'basic'.
+             */
+            function deactivateAdvancedMode(state = 'basic') {
+                advancedModeActive = false;
+                editorStatus.textContent = '(Modo Básico)'; // Siempre vuelve a básico en el estado general
 
-            function handleSeedActivation(event) {
-                // Si ya estamos en modo avanzado, no procesar más intentos de activación de semilla.
-                if (messageArea.classList.contains('advanced-mode')) {
-                    return;
+                if (state === 'hibernation') {
+                    updateMainMessage('Códex Prime en Hibernación. Operaciones en pausa segura.');
+                } else if (state === 'annihilation') {
+                    updateMainMessage('Códex Prime Aniquilado. Eliminación total de protocolos de manifestación.', false, true);
+                } else { // 'basic'
+                    updateMainMessage('Editor de Código Básico. Para funcionalidades avanzadas, active el protocolo Sigil.');
                 }
                 
-                // Enfocar el input oculto para facilitar la entrada, si se presiona Ctrl+Alt+S
-                if (event.ctrlKey && event.altKey && event.key === 's') {
-                    secretInput.focus();
-                    secretInput.value = ''; // Limpiar el input oculto
-                    currentPasswordAttempt = ''; // Resetear el intento de contraseña
-                    messageArea.textContent = 'Ingresa tu Contraseña de Comando de Mando en el editor...';
-                    messageArea.classList.remove('advanced-mode');
-                    messageArea.classList.add('basic-mode');
-                    event.preventDefault(); // Evitar el comportamiento predeterminado del navegador
-                    return;
-                }
-                
-                // Si el foco no está en el input secreto, no procesar entrada
-                if (document.activeElement !== secretInput) {
-                    return; 
-                }
+                // CAMBIO CLAVE: Restablecer placeholder y spellcheck para código
+                editor.placeholder = 'Escribe tu código aquí...';
+                editor.spellcheck = false;
 
-                // Si es el input secreto, añadir el caracter al intento
-                if (event.key.length === 1) { // Solo añadir caracteres individuales (no shift, ctrl, etc.)
-                    currentPasswordAttempt += event.key;
-                } else if (event.key === 'Backspace') {
-                    currentPasswordAttempt = currentPasswordAttempt.slice(0, -1); // Permitir borrar
-                }
-                
-                // Verificar si la secuencia actual coincide con la contraseña secreta
-                if (currentPasswordAttempt.endsWith(CODEX_PRIME_PASSWORD)) {
-                    activateAdvancedMode();
-                    currentPasswordAttempt = ''; // Resetear el intento
-                } else if (currentPasswordAttempt.length > CODEX_PRIME_PASSWORD.length * 2) {
-                    // Limitar el tamaño del intento para evitar un buffer excesivo
-                    currentPasswordAttempt = ''; 
-                }
+                configModal.style.display = 'none'; // Cerrar el modal
+                codexPasswordInput.value = ''; // Limpiar el input de contraseña
+                modalMessageArea.textContent = ''; // Limpiar mensaje del modal
             }
-
 
             // --- Lógica del Editor Básico ---
 
@@ -298,6 +441,11 @@
             // Funcionalidad de descarga de código
             downloadBtn.addEventListener('click', () => {
                 const codeContent = editor.value;
+                if (codeContent.trim() === '') {
+                    // Usar un mensaje en el modal en el futuro, por ahora un alert simple
+                    alert('El editor está vacío. No hay código para descargar.');
+                    return;
+                }
                 const fileName = 'codigo_eclipse_sigil.txt'; // El usuario puede cambiar la extensión
                 const blob = new Blob([codeContent], { type: 'text/plain' });
                 const url = URL.createObjectURL(blob);
@@ -312,22 +460,20 @@
 
             // Funcionalidad de limpiar editor
             clearBtn.addEventListener('click', () => {
+                // Usar un modal de confirmación en el futuro, por ahora un confirm simple
                 if (confirm('¿Estás seguro de que quieres limpiar todo el código? Esto restablecerá el editor al Modo Básico.')) {
                     editor.value = '';
                     updateLineNumbers();
-                    messageArea.textContent = 'Editor de Código Básico. Para funcionalidades avanzadas, active el protocolo Sigil.';
-                    messageArea.classList.remove('advanced-mode');
-                    messageArea.classList.add('basic-mode');
-                    editorStatus.textContent = '(Modo Básico)';
-                    currentPasswordAttempt = ''; // Resetear el intento de contraseña
-                    document.addEventListener('keydown', handleSeedActivation); // Reactivar listener para la semilla
+                    deactivateAdvancedMode('basic'); // Volver a modo básico
                     console.log("Editor reiniciado a modo básico.");
                 }
             });
 
-            // Inicializar números de línea al cargar la página
-            updateLineNumbers();
-        });
-    </script>
-</body>
-  </html>
+            // --- Eventos del Modal de Configuración ---
+
+            // Abre el modal al hacer clic en el botón "Configuración"
+            configBtn.addEventListener('click', () => {
+                configModal.style.display = 'flex'; // Mostrar el modal
+                codexPasswordInput.focus(); // Poner el foco en el input de contraseña
+                modalMessageArea.textContent = ''; // Limpiar mensajes anteriores
+                codexPasswordI
